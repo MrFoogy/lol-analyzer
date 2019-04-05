@@ -1,0 +1,9 @@
+node_modules
+*.vsix
+*/build/Release
+*/dist/
+package-lock.json
+*/selenium-debug.log
+*/npm-debug.log
+*/.DS_Store
+.vscode
