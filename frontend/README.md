@@ -1,4 +1,4 @@
-# testapp02
+# frontend
 
 ## Project setup
 ```
