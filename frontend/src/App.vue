@@ -1,8 +1,19 @@
 <template>
   <div id="app">
+    <SummonerSelect> </SummonerSelect>
     <router-view/>
   </div>
 </template>
+
+<script>
+import SummonerSelect from '@/components/SummonerSelect'
+export default {
+  name: 'App',
+  components: {
+    'SummonerSelect': SummonerSelect,
+  },
+}
+</script>
 
 <style>
 #app {

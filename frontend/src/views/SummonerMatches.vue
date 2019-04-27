@@ -1,13 +1,13 @@
 <template>
-  <div >
-    <h1> Hello boys! </h1>
+  <div>
+    <h1> Matches! </h1>
   </div>
 </template>
 
 <script>
 
 export default {
-  name: 'home',
+  name: 'summonerMatches',
 }
 </script>
 

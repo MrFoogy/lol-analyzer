@@ -1,7 +1,10 @@
 import Vue from 'vue'
 import Router from 'vue-router'
-import Home from './views/Home.vue'
-import SummonerInfo from '@/components/SummonerInfo'
+import Home from '@/views/Home.vue'
+import SummonerMain from '@/views/SummonerMain.vue'
+import SummonerInfo from '@/views/SummonerInfo'
+import SummonerChampions from '@/views/SummonerChampions'
+import SummonerMatches from '@/views/SummonerMatches'
 
 Vue.use(Router)
 
@@ -16,9 +19,29 @@ export default new Router({
     },
     {
       path: '/:server/:summonerName',
-      name: 'summonerInfo',
-      component: SummonerInfo,
+      name: 'summonerMain',
+      component: SummonerMain,
       props: true,
+      children: [
+        {
+          path: 'overview',
+          name: 'summonerOverview',
+          props: true,
+          component: SummonerInfo,
+        },
+        {
+          path: 'champions',
+          name: 'summonerChampions',
+          props: true,
+          component: SummonerChampions,
+        },
+        {
+          path: 'matches',
+          name: 'summonerMatches',
+          props: true,
+          component: SummonerMatches,
+        }
+      ]
     }
   ]
 })
