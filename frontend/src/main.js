@@ -9,11 +9,15 @@ Vue.use(Vuex);
 
 const store = new Vuex.Store({
   state: {
-    accountId: ""
+    accountId: "",
+    summonerId: "",
   },
   mutations: {
     setAccountId(state, newId) {
       state.accountId = newId;
+    },
+    setSummonerId(state, newId) {
+      state.summonerId = newId;
     }
   }
 })

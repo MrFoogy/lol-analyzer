@@ -17,7 +17,8 @@ export default {
   methods: {
     fetchAccountId() {
       axios.get(dataFetch.accountIdUrl(this.server, this.summonerName)).then(response => {
-        this.$store.commit("setAccountId", response.data);
+        this.$store.commit("setAccountId", response.data["accountId"]);
+        this.$store.commit("setSummonerId", response.data["id"]);
       });
     }
   },

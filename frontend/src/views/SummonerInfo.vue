@@ -34,6 +34,7 @@ export default {
       });
     }
   },
+  /*
   watch: {
     summonerName: function() {
       this.fetchBaseInfo();
@@ -42,6 +43,7 @@ export default {
       this.fetchBaseInfo();
     }
   },
+  */
   mounted() {
     this.fetchBaseInfo();
   }
