@@ -16,6 +16,10 @@ export function matchListUrl(server, accountId) {
   return dbURL + server + "/" + accountId + "/matchlist";
 }
 
+export function matchDetailsUrl(server, matchId) {
+  return dbURL + server + "/match/" + matchId;
+}
+
 export function matchKillsUrl(server, matchId) {
   return dbURL + server + "/match_timeline/" + matchId + "/kills";
 }

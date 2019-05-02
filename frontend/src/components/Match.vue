@@ -10,7 +10,7 @@
 import { format, render, cancel, register } from 'timeago.js'
 
 export default {
-  name: 'championMastery',
+  name: 'match',
   props: ["gameId", "championName", "role", "lane", "timestamp", "queue"],
   data: function() {
       return {

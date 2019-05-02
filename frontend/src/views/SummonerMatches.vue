@@ -15,13 +15,17 @@
         :queue="match.queue"
       ></li>
     </div>
-    <Heatmap ref="heatmap"/>
+    <div id="details">
+      <Heatmap ref="heatmap"/>
+      <MatchDetails ref="matchDetails" :server="server"/>
+    </div>
   </div>
 </template>
 
 <script>
 import Match from '../components/Match';
 import Heatmap from '../components/Heatmap';
+import MatchDetails from '../components/MatchDetails';
 import axios from 'axios';
 import * as dataFetch from '../assets/js/data_fetch.js';
 
@@ -37,10 +41,12 @@ export default {
   components: {
     'Match': Match,
     'Heatmap': Heatmap,
+    'MatchDetails': MatchDetails,
   },
   methods: {
     matchClicked: function(event, matchId) {
       this.fetchMatchKills(matchId);
+      this.$refs.matchDetails.fetchMatchDetails(matchId);
     },
     fetchData() {
       axios.get(dataFetch.matchListUrl(this.server, this.$store.state.accountId)).then(response => {
@@ -70,6 +76,10 @@ export default {
   flex-direction: column;
   width: 400px;
   margin-right: 20px;
+}
+#details {
+  display: flex;
+  flex-direction: column;
 }
 </style>
 

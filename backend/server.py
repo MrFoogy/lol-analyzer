@@ -6,10 +6,11 @@ import requests
 import champion_data
 import queue_names
 import timeline_analysis
+import match_details
 app = Flask(__name__)
 CORS(app)
 
-api_key = "RGAPI-eb0e7bb1-3c9d-47e9-98c8-2fea5b60466c"
+api_key = "RGAPI-35b70086-3d53-4cf0-a28d-6a2e202756ac"
 region_end_points = {
     "br": "br1.api.riotgames.com",
     "eune": "eun1.api.riotgames.com",
@@ -67,6 +68,13 @@ def get_match_kills(server, match_id):
     url = compose_url("/lol/match/v4/timelines/by-match/" + match_id, server)
     json_data = requests.get(url).json()
     return jsonify(timeline_analysis.get_all_kills(json_data))
+
+
+@app.route("/api/<server>/match/<match_id>")
+def get_match_details(server, match_id):
+    url = compose_url("/lol/match/v4/matches/" + match_id, server)
+    json_data = requests.get(url).json()
+    return jsonify(match_details.get_relevant_details(json_data))
 
 
 def compose_url(url, server):
