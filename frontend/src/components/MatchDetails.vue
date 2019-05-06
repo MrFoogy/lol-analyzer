@@ -1,6 +1,6 @@
 <template>
   <div id="container">
-    <div v-if="matchData != []" class="matchDetails">
+    <template v-if="matchData" class="matchDetails">
       <p> {{ formatDuration(matchData["duration"]) }} </p>
       <div id="teams">
         <div class="teamContent">
@@ -8,7 +8,9 @@
           <li
             is="MatchParticipant"
             v-for="player in matchData['teams']['red']['participants']"
-            :key="player.id"
+            @playerClick="playerClicked"
+            :key="player.participantId"
+            :isSelected="player.summonerName == selectedSummoner"
             :playerData="player"
           ></li>
         </div>
@@ -17,12 +19,14 @@
           <li
             is="MatchParticipant"
             v-for="player in matchData['teams']['blue']['participants']"
-            :key="player.id"
+            @playerClick="playerClicked"
+            :key="player.participantId"
+            :isSelected="player.summonerName == selectedSummoner"
             :playerData="player"
           ></li>
         </div>
       </div>
-    </div>
+    </template>
   </div>
 </template>
 
@@ -35,20 +39,41 @@ export default {
   name: 'matchDetails',
   props: {
     server: String,
+    summonerName: String,
   },
   components: {
     "MatchParticipant": MatchParticipant,
   },
   data: function() {
       return {
-          matchData: []
+          matchData: null,
+          selectedSummoner: null,
       }
   },
   methods: {
     fetchMatchDetails(matchId) {
+      this.selectedSummoner = this.summonerName;
       axios.get(dataFetch.matchDetailsUrl(this.server, matchId)).then(response => {
         this.matchData = response.data
+        this.tryPassSelectedSummoner(this.summonerName);
       });
+    },
+    getParticipantId(summonerName) {
+      if (this.matchData != []) {
+        var blue = this.matchData.teams.blue.participants;
+        var red = this.matchData.teams.red.participants;
+        for (var i = 0; i < blue.length; i++) {
+          if (blue[i].summonerName == summonerName) {
+            return blue[i].participantId;
+          }
+        }
+        for (var i = 0; i < red.length; i++) {
+          if (red[i].summonerName == summonerName) {
+            return red[i].participantId;
+          }
+        }
+      }
+      return -1;
     },
     formatDuration(duration) {
       var hrs = ~~(duration / 3600);
@@ -62,7 +87,41 @@ export default {
       ret += "" + mins + ":" + (secs < 10 ? "0" : "");
       ret += "" + secs;
       return ret;
+    },
+    playerClicked(event, playerData) {
+      this.selectedSummoner = playerData.summonerName;
+    },
+    tryPassSelectedSummoner(summonerName) {
+      if (summonerName == null || this.matchData == null) return;
+      var participantId = this.getParticipantId(summonerName);
+      if (participantId != -1) {
+        this.$emit('participantSelected', participantId);
+      }
     }
+  },
+  watch: {
+    selectedSummoner: function(val) {
+      this.tryPassSelectedSummoner(val);
+    }
+  }
+}
+</script>
+
+<style scoped>
+#container * {
+  margin-top: 5px;
+  margin-bottom: 0;
+}
+#teams {
+    display: flex;
+    flex-direction: row;
+}
+.teamContent {
+  flex: 50%;
+}
+</style>
+
+
   }
 }
 </script>

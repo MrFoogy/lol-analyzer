@@ -16,8 +16,15 @@
       ></li>
     </div>
     <div id="details">
+      <select ref="eventPick" v-model="selectedEventType">
+        <option v-for="eventType in eventTypes" :value="eventType.paramName" :key="eventType.displayName"> {{ eventType.displayName }} </option>
+      </select>
       <Heatmap ref="heatmap"/>
-      <MatchDetails ref="matchDetails" :server="server"/>
+      <MatchDetails 
+        ref="matchDetails" 
+        :server="server" 
+        :summonerName="summonerName"
+        @participantSelected="participantSelected"/>
     </div>
   </div>
 </template>
@@ -36,6 +43,31 @@ export default {
     return {
       matches: [],
       matchKills: [],
+      currentMatchId: null,
+      selectedParticipant: null,
+      selectedEventType: "kill",
+      eventTypes: [
+        {
+          "displayName": "Kills",
+          "paramName": "kill",
+        },
+        {
+          "displayName": "Deaths",
+          "paramName": "death",
+        },
+        {
+          "displayName": "Assists",
+          "paramName": "assist",
+        },
+        {
+          "displayName": "Wards Placed",
+          "paramName": "wardplace",
+        },
+        {
+          "displayName": "Wards Killed",
+          "paramName": "wardkill",
+        },
+      ],
     }
   },
   components: {
@@ -45,18 +77,36 @@ export default {
   },
   methods: {
     matchClicked: function(event, matchId) {
-      this.fetchMatchKills(matchId);
+      this.selectedParticipant = null;
       this.$refs.matchDetails.fetchMatchDetails(matchId);
+      this.currentMatchId = matchId;
     },
     fetchData() {
       axios.get(dataFetch.matchListUrl(this.server, this.$store.state.accountId)).then(response => {
         this.matches = response.data;
       });
     },
-    fetchMatchKills(matchId) {
-      axios.get(dataFetch.matchKillsUrl(this.server, matchId)).then(response => {
+    fetchTimelineData() {
+      axios.get(dataFetch.matchKillsUrl(this.server, this.currentMatchId), 
+          { 
+            params: {
+              pID: this.selectedParticipant,
+              event: this.selectedEventType
+            }
+          }).then(response => {
         this.$refs.heatmap.displayKills(response.data);
       });
+    },
+    participantSelected: function(participantId) {
+      this.selectedParticipant = participantId;
+      this.fetchTimelineData();
+    }
+  },
+  watch: {
+    selectedEventType: function(val) {
+      if (this.selectedParticipant != null) {
+        this.fetchTimelineData();
+      }
     }
   },
   mounted() {

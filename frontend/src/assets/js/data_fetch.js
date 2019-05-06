@@ -21,5 +21,5 @@ export function matchDetailsUrl(server, matchId) {
 }
 
 export function matchKillsUrl(server, matchId) {
-  return dbURL + server + "/match_timeline/" + matchId + "/kills";
+  return dbURL + server + "/match_timeline/" + matchId + "/timeline";
 }

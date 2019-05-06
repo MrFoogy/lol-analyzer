@@ -1,7 +1,7 @@
 import sys
 from flask import Flask
 from flask_cors import CORS
-from flask import json, jsonify
+from flask import json, jsonify, request
 import requests
 import champion_data
 import queue_names
@@ -10,7 +10,7 @@ import match_details
 app = Flask(__name__)
 CORS(app)
 
-api_key = "RGAPI-35b70086-3d53-4cf0-a28d-6a2e202756ac"
+api_key = "RGAPI-d43c64ea-a313-4518-83b4-e768be59514f"
 region_end_points = {
     "br": "br1.api.riotgames.com",
     "eune": "eun1.api.riotgames.com",
@@ -42,7 +42,6 @@ def get_summoner_overview(server, summoner_name):
 def get_summoner_account_id(server, summoner_name):
     url = compose_url("/lol/summoner/v4/summoners/by-name/" + summoner_name, server)
     json_data = requests.get(url).json()
-    print(json_data, sys.stdout)
     return jsonify({k: json_data[k] for k in ["accountId", "id"]})
 
 
@@ -63,11 +62,11 @@ def get_champion_mastery(server, summoner_id):
                      "championName": champion_data.get_champion_name(champ_obj["championId"])} for champ_obj in json_data[:25]])
 
 
-@app.route("/api/<server>/match_timeline/<match_id>/kills")
-def get_match_kills(server, match_id):
+@app.route("/api/<server>/match_timeline/<match_id>/timeline")
+def get_match_timeline(server, match_id):
     url = compose_url("/lol/match/v4/timelines/by-match/" + match_id, server)
     json_data = requests.get(url).json()
-    return jsonify(timeline_analysis.get_all_kills(json_data))
+    return jsonify(timeline_analysis.get_timeline_data(json_data, request.args.get("event"), int(request.args.get("pID"))))
 
 
 @app.route("/api/<server>/match/<match_id>")
