@@ -6,8 +6,6 @@
       <p> Level {{ summonerLevel }} </p>
       <img :src="'http://ddragon.leagueoflegends.com/cdn/9.8.1/img/profileicon/' + profileIconId + '.png'">
     </div>
-    <h1> Hej: {{ this.$store.state.accountId }}
-    </h1>
   </div>
 </template>
 

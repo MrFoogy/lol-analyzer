@@ -75,5 +75,9 @@ export default {
 select {
   margin-top: 10px;
 }
+.summonerSelect * {
+  margin-left: 5px;
+  margin-right: 5px;
+}
 </style>
 

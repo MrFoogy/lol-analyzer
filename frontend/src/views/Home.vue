@@ -1,6 +1,6 @@
 <template>
   <div >
-    <h1> Hello boys! </h1>
+    <h1> League of Legends Analyzer </h1>
   </div>
 </template>
 

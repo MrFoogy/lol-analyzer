@@ -30,6 +30,10 @@ export default {
       }
       this.redraw();
     },
+    clear() {
+      this.positions = [];
+      this.redraw();
+    },
     redraw() {
       this.heat.radius(15, 10);
       this.heat.data(this.positions).draw();

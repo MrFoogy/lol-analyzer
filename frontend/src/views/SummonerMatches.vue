@@ -1,30 +1,52 @@
 <template>
-  <div id="mainContainer">
-    <div id="matchList">
-      <li
-        is="Match"
-        v-for="match in matches"
-        @matchClick="matchClicked"
-        :key="match.championId"
-        :id="match.gameId"
-        :gameId="match.gameId"
-        :championName="match.championName"
-        :lane="match.lane"
-        :role="match.role"
-        :timestamp="match.timestamp"
-        :queue="match.queue"
-      ></li>
-    </div>
-    <div id="details">
-      <select ref="eventPick" v-model="selectedEventType">
-        <option v-for="eventType in eventTypes" :value="eventType.paramName" :key="eventType.displayName"> {{ eventType.displayName }} </option>
-      </select>
-      <Heatmap ref="heatmap"/>
-      <MatchDetails 
-        ref="matchDetails" 
-        :server="server" 
-        :summonerName="summonerName"
-        @participantSelected="participantSelected"/>
+  <div>
+    <!-- Rounded switch -->
+    <!--
+    <label class="switch">
+      <input type="checkbox" v-model="combine">
+      <span class="slider round"></span>
+    </label>
+    -->
+    <div id="mainContainer">
+      <div id="querySelect">
+        <div v-if="!combine" id="matchSelect">
+          <div id="details" v-show="selectedMatchIds.length == 1">
+            <MatchDetails 
+              ref="matchDetails" 
+              :server="server" 
+              :summonerName="summonerName"
+              @participantSelected="participantSelected"/>
+          </div>
+          <div id="matchList">
+            <li
+              is="Match"
+              v-for="match in matches"
+              @matchClick="matchClicked"
+              :key="match.championId"
+              :id="match.gameId"
+              :gameId="match.gameId"
+              :championName="match.championName"
+              :lane="match.lane"
+              :role="match.role"
+              :timestamp="match.timestamp"
+              :queue="match.queue"
+              :isSelected="selectedMatchIds.includes(match.gameId)"
+            ></li>
+          </div>
+        </div>
+        <div v-else>
+          <MatchCombiner @onTimelineQuery="onTimelineQuery"/>
+        </div>
+      </div>
+      <div id="dataDisplayContainer">
+        <div id="dataDisplay">
+          <select ref="eventPick" v-model="selectedEventType">
+            <option v-for="eventType in eventTypes" :value="eventType.paramName" :key="eventType.displayName"> {{ eventType.displayName }} </option>
+          </select>
+          <Heatmap ref="heatmap"/>
+          <button @click="refreshHeatmap"> Update </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -33,6 +55,7 @@
 import Match from '../components/Match';
 import Heatmap from '../components/Heatmap';
 import MatchDetails from '../components/MatchDetails';
+import MatchCombiner from '../components/MatchCombiner';
 import axios from 'axios';
 import * as dataFetch from '../assets/js/data_fetch.js';
 
@@ -41,9 +64,10 @@ export default {
   props: ["server", "summonerName"],
   data: function() {
     return {
+      combine: false,
       matches: [],
       matchKills: [],
-      currentMatchId: null,
+      selectedMatchIds: [],
       selectedParticipant: null,
       selectedEventType: "kill",
       eventTypes: [
@@ -59,6 +83,7 @@ export default {
           "displayName": "Assists",
           "paramName": "assist",
         },
+        /*
         {
           "displayName": "Wards Placed",
           "paramName": "wardplace",
@@ -67,6 +92,7 @@ export default {
           "displayName": "Wards Killed",
           "paramName": "wardkill",
         },
+        */
       ],
     }
   },
@@ -74,39 +100,76 @@ export default {
     'Match': Match,
     'Heatmap': Heatmap,
     'MatchDetails': MatchDetails,
+    'MatchCombiner': MatchCombiner,
   },
   methods: {
     matchClicked: function(event, matchId) {
       this.selectedParticipant = null;
-      this.$refs.matchDetails.fetchMatchDetails(matchId);
-      this.currentMatchId = matchId;
+      if (this.selectedMatchIds.includes(matchId)) {
+        this.selectedMatchIds.splice(this.selectedMatchIds.indexOf(matchId), 1);
+      } else {
+        this.selectedMatchIds.push(matchId);
+      }
+      if (this.selectedMatchIds.length == 1) {
+        this.$refs.matchDetails.fetchMatchDetails(this.selectedMatchIds[0]);
+      }
+    },
+    onTimelineQuery() {
+      this.fetchFullTimeline();
     },
     fetchData() {
       axios.get(dataFetch.matchListUrl(this.server, this.$store.state.accountId)).then(response => {
         this.matches = response.data;
       });
     },
-    fetchTimelineData() {
-      axios.get(dataFetch.matchKillsUrl(this.server, this.currentMatchId), 
+    fetchTimeline() {
+      if (this.selectedMatchIds.length == 1) {
+        this.fetchMatchTimeline();
+      } else if (this.selectedMatchIds.length > 0) {
+        this.fetchSelectedMatchesTimeline();
+      } 
+    },
+    fetchMatchTimeline() {
+      axios.get(dataFetch.matchTimelineUrl(this.server, this.selectedMatchIds[0]), 
           { 
             params: {
               pID: this.selectedParticipant,
-              event: this.selectedEventType
+              event: this.selectedEventType,
+              matchIDs: this.selectedMatchIds,
             }
           }).then(response => {
         this.$refs.heatmap.displayKills(response.data);
       });
     },
+    fetchSelectedMatchesTimeline() {
+      axios.get(dataFetch.combinedTimelineUrl(this.server, this.$store.state.accountId), 
+          { 
+            params: {
+              event: this.selectedEventType,
+              matchIDs: "[" + this.selectedMatchIds.toString() + "]",
+            }
+          }).then(response => {
+        console.log(response.data);
+        this.$refs.heatmap.displayKills(response.data["timeline"]);
+      });
+    },
+    fetchFullTimeline() {
+      axios.get(dataFetch.fullTimelineUrl(this.server, this.$store.state.accountId), 
+          { 
+            params: {
+              event: this.selectedEventType
+            }
+          }).then(response => {
+        console.log(response.data);
+        this.$refs.heatmap.displayKills(response.data["timeline"]);
+      });
+    },
     participantSelected: function(participantId) {
       this.selectedParticipant = participantId;
-      this.fetchTimelineData();
-    }
-  },
-  watch: {
-    selectedEventType: function(val) {
-      if (this.selectedParticipant != null) {
-        this.fetchTimelineData();
-      }
+    },
+    refreshHeatmap() {
+      this.$refs.heatmap.clear();
+      this.fetchTimeline();
     }
   },
   mounted() {
@@ -121,15 +184,105 @@ export default {
   flex-direction: row;
   justify-content: center;
 }
+#matchSelect {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+}
+#querySelect {
+  width: 60%;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+}
+#dataDisplayContainer {
+  width: 40%;
+  margin-left: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+#dataDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+#dataDisplay * {
+  margin-bottom: 10px;
+}
 #matchList {
   display: flex;
   flex-direction: column;
   width: 400px;
-  margin-right: 20px;
+  margin-left: 20px;
 }
 #details {
+  width: 400px;
   display: flex;
   flex-direction: column;
+}
+
+/* The switch - the box around the slider */
+.switch {
+  position: relative;
+  display: inline-block;
+  width: 60px;
+  height: 34px;
+}
+
+/* Hide default HTML checkbox */
+.switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+/* The slider */
+.slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #ccc;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+.slider:before {
+  position: absolute;
+  content: "";
+  height: 26px;
+  width: 26px;
+  left: 4px;
+  bottom: 4px;
+  background-color: white;
+  -webkit-transition: .4s;
+  transition: .4s;
+}
+
+input:checked + .slider {
+  background-color: #2196F3;
+}
+
+input:focus + .slider {
+  box-shadow: 0 0 1px #2196F3;
+}
+
+input:checked + .slider:before {
+  -webkit-transform: translateX(26px);
+  -ms-transform: translateX(26px);
+  transform: translateX(26px);
+}
+
+/* Rounded sliders */
+.slider.round {
+  border-radius: 34px;
+}
+
+.slider.round:before {
+  border-radius: 50%;
 }
 </style>
 

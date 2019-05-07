@@ -13,11 +13,14 @@ def get_relevant_details(json_data):
             teams["red"]["stats"] = stats
     for participant_json in json_data["participants"]:
         summonerName = ""
+        accountId = ""
         for player_json in json_data["participantIdentities"]:
             if player_json["participantId"] == participant_json["participantId"]:
                 summonerName = player_json["player"]["summonerName"]
+                accountId = player_json["player"]["currentAccountId"]
         participant = {"participantId": participant_json["participantId"],
                        "summonerName": summonerName, 
+                       "accountId": accountId,
                        "championName": champion_data.get_champion_name(participant_json["championId"]),
                        "lane": participant_json["timeline"]["lane"],
                        "role": participant_json["timeline"]["role"],
@@ -33,3 +36,12 @@ def get_relevant_details(json_data):
             teams["red"]["participants"].append(participant)
     return {"teams": teams, "duration": json_data["gameDuration"]}
 
+
+def get_participant_id(match_details_data, account_id):
+    for participant in match_details_data["teams"]["blue"]["participants"]:
+        if participant["accountId"] == account_id:
+            return participant["participantId"]
+    for participant in match_details_data["teams"]["red"]["participants"]:
+        if participant["accountId"] == account_id:
+            return participant["participantId"]
+    return None

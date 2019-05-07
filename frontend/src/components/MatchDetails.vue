@@ -1,7 +1,7 @@
 <template>
   <div id="container">
     <template v-if="matchData" class="matchDetails">
-      <p> {{ formatDuration(matchData["duration"]) }} </p>
+      <p> Game time: {{ formatDuration(matchData["duration"]) }} </p>
       <div id="teams">
         <div class="teamContent">
           <p> {{ matchData['teams']['red']['stats']['win'] }}
@@ -120,23 +120,3 @@ export default {
   flex: 50%;
 }
 </style>
-
-
-  }
-}
-</script>
-
-<style scoped>
-#container * {
-  margin-top: 5px;
-  margin-bottom: 0;
-}
-#teams {
-    display: flex;
-    flex-direction: row;
-}
-.teamContent {
-  flex: 50%;
-}
-</style>
-

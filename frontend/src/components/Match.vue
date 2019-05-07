@@ -1,5 +1,5 @@
 <template>
-  <div class="matchItem" @click="$emit('matchClick', $event, gameId)">
+  <div id="matchItem" :class="[styleClass, 'matchItem']" @click="$emit('matchClick', $event, gameId)">
     <img :src="'http://ddragon.leagueoflegends.com/cdn/9.8.1/img/champion/' + championName + '.png'">
     <p> {{ timeText }} </p>
     <p id="queueText"> {{ queue }} </p>
@@ -11,7 +11,7 @@ import { format, render, cancel, register } from 'timeago.js'
 
 export default {
   name: 'match',
-  props: ["gameId", "championName", "role", "lane", "timestamp", "queue"],
+  props: ["isSelected", "gameId", "championName", "role", "lane", "timestamp", "queue"],
   data: function() {
       return {
       }
@@ -19,6 +19,13 @@ export default {
   computed: {
     timeText: function() {
         return format(this.timestamp);
+    },
+    styleClass: function() {
+      if (this.isSelected) {
+        return "selected";
+      } else {
+        return "normal"
+      }
     }
   },
 }
@@ -42,6 +49,12 @@ export default {
 img {
   width: 50px;
   height: 50px;
+}
+.normal {
+  background-color: wheat;
+}
+.selected {
+  background-color: yellowgreen;
 }
 </style>
 
