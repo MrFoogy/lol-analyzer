@@ -10,7 +10,7 @@ import match_details
 app = Flask(__name__)
 CORS(app)
 
-api_key = "RGAPI-c3d3cc7a-f1cf-49f7-8513-40196aa08ef2"
+api_key = "RGAPI-7c1c8152-238d-4671-96da-0c4566b1f4ac"
 region_end_points = {
     "br": "br1.api.riotgames.com",
     "eune": "eun1.api.riotgames.com",
@@ -25,6 +25,13 @@ region_end_points = {
     "ru": "ru.api.riotgames.com",
 }
 
+def allow_cors(request):
+    request.setHeader('Access-Control-Allow-Origin', '*')
+    request.setHeader('Access-Control-Allow-Methods', 'GET')
+    request.setHeader('Access-Control-Allow-Headers',
+                   'x-prototype-version,x-requested-with')
+    request.setHeader('Access-Control-Max-Age', 2520)
+    request.setHeader('Content-type', 'application/json')
 
 def get_error_response(status_code):
     message = "Error"
