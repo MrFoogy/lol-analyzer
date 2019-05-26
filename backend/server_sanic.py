@@ -128,11 +128,11 @@ async def get_match_timeline(request, server, match_id):
     if is_error(response):
         return get_error_response(response.code)
     json_data = await get_response_json(app, response)
-    return create_json_response(timeline_analysis.get_timeline_data(json_data, get_request_param(request, "event"), int(get_request_param(request, "pID"))))
+    return create_json_response(timeline_analysis.get_timeline_data(json_data, int(get_request_param(request, "pID"))))
 
 
 async def fetch_combined_timeline(request, server, account_id, match_ids, event_type):
-    combined_timeline = []
+    timelines = []
     num_matches = 0
     # First, fetch the match details
     
@@ -148,10 +148,10 @@ async def fetch_combined_timeline(request, server, account_id, match_ids, event_
         if is_error(match_timeline_response):
             return get_error_response(match_timeline_response.code)
         match_timeline_json = await get_response_json(app, match_timeline_response)
-        match_events = timeline_analysis.get_timeline_data(match_timeline_json, event_type, participant_id)
-        combined_timeline.extend(match_events)
+        match_timeline = timeline_analysis.get_timeline_data(match_timeline_json, participant_id)
+        timelines.append(match_timeline)
         num_matches += 1
-    return create_json_response({"matches": num_matches, "timeline": combined_timeline})
+    return create_json_response({"matches": num_matches, "timeline": timeline_analysis.combine_timelines(timelines)})
 
 
 @app.route("/api/<server>/account/<account_id>/combined_timeline")

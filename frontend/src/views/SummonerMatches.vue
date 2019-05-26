@@ -9,7 +9,8 @@
     -->
     <div id="mainContainer">
       <div id="querySelect">
-        <div v-if="!combine" id="matchSelect">
+        <div id="matchSelect">
+          <MatchFilter/>
           <div id="details" v-show="selectedMatchIds.length == 1">
             <MatchDetails 
               ref="matchDetails" 
@@ -34,17 +35,20 @@
             ></li>
           </div>
         </div>
-        <div v-else>
-          <MatchCombiner @onTimelineQuery="onTimelineQuery"/>
-        </div>
       </div>
       <div id="dataDisplayContainer">
         <div id="dataDisplay">
+          <select ref="statPick" v-model="selectedStatType">
+            <option v-for="statType in statTypes" :value="statType" :key="statType.displayName"> {{ statType.displayName }} </option>
+          </select>
+          <StatGraph ref="statGraph" :statType="selectedStatType"/>
           <select ref="eventPick" v-model="selectedEventType">
             <option v-for="eventType in eventTypes" :value="eventType.paramName" :key="eventType.displayName"> {{ eventType.displayName }} </option>
           </select>
-          <Heatmap ref="heatmap"/>
+          <Heatmap ref="heatmap" :eventType="selectedEventType"/>
+          <!--
           <button @click="refreshHeatmap"> Update </button>
+          -->
         </div>
       </div>
     </div>
@@ -53,7 +57,9 @@
 
 <script>
 import Match from '../components/Match';
+import StatGraph from '../components/StatGraph';
 import Heatmap from '../components/Heatmap';
+import MatchFilter from '../components/MatchFilter'
 import MatchDetails from '../components/MatchDetails';
 import MatchCombiner from '../components/MatchCombiner';
 import axios from 'axios';
@@ -70,6 +76,16 @@ export default {
       selectedMatchIds: [],
       selectedParticipant: null,
       selectedEventType: "kill",
+      selectedStatType: {"displayName": "Gold Earned", "paramName": "gold"},
+      statTypes: [
+        {"displayName": "Gold Earned", "paramName": "gold"},
+        {"displayName": "Minions Killed", "paramName": "cs"},
+        {"displayName": "Kills", "paramName": "kill"},
+        {"displayName": "Deaths", "paramName": "death"},
+        {"displayName": "Assists", "paramName": "assist"},
+        {"displayName": "Wards Placed", "paramName": "wardplace"},
+        {"displayName": "Wards Killed", "paramName": "wardkill"},
+      ],
       eventTypes: [
         {
           "displayName": "Kills",
@@ -99,8 +115,10 @@ export default {
   components: {
     'Match': Match,
     'Heatmap': Heatmap,
+    'StatGraph': StatGraph,
     'MatchDetails': MatchDetails,
     'MatchCombiner': MatchCombiner,
+    'MatchFilter': MatchFilter,
   },
   methods: {
     matchClicked: function(event, matchId) {
@@ -112,6 +130,8 @@ export default {
       }
       if (this.selectedMatchIds.length == 1) {
         this.$refs.matchDetails.fetchMatchDetails(this.selectedMatchIds[0]);
+      } else if (this.selectedMatchIds.length > 0) {
+        this.refreshHeatmap();
       }
     },
     onTimelineQuery() {
@@ -138,7 +158,8 @@ export default {
               matchIDs: this.selectedMatchIds,
             }
           }).then(response => {
-        this.$refs.heatmap.displayKills(response.data);
+        this.$refs.heatmap.setTimelineData(response.data["events"]);
+        this.$refs.statGraph.setTimelineData(response.data["stats"]);
       });
     },
     fetchSelectedMatchesTimeline() {
@@ -150,7 +171,8 @@ export default {
             }
           }).then(response => {
         console.log(response.data);
-        this.$refs.heatmap.displayKills(response.data["timeline"]);
+        this.$refs.heatmap.setTimelineData(response.data["timeline"]["events"]);
+        this.$refs.statGraph.setTimelineData(response.data["timeline"]["stats"]);
       });
     },
     fetchFullTimeline() {
@@ -161,11 +183,13 @@ export default {
             }
           }).then(response => {
         console.log(response.data);
-        this.$refs.heatmap.displayKills(response.data["timeline"]);
+        this.$refs.heatmap.setTimelineData(response.data["timeline"]["events"]);
+        this.$refs.statGraph.setTimelineData(response.data["timeline"]["stats"]);
       });
     },
     participantSelected: function(participantId) {
       this.selectedParticipant = participantId;
+      this.refreshHeatmap();
     },
     refreshHeatmap() {
       this.$refs.heatmap.clear();

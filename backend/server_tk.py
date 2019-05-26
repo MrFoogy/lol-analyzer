@@ -118,11 +118,11 @@ async def get_match_timeline(request, server, match_id):
     if is_error(response):
         return get_error_response(response.code)
     json_data = await treq.json_content(response)
-    return json.dumps(timeline_analysis.get_timeline_data(json_data, get_request_param(request, "event"), int(get_request_param(request, "pID"))))
+    return json.dumps(timeline_analysis.get_timeline_data(json_data, int(get_request_param(request, "pID"))))
 
 
 async def fetch_combined_timeline(request, server, account_id, match_ids, event_type):
-    combined_timeline = []
+    timelines = []
     num_matches = 0
     # First, fetch the match details
     
@@ -138,10 +138,10 @@ async def fetch_combined_timeline(request, server, account_id, match_ids, event_
         if is_error(match_timeline_response):
             return get_error_response(match_timeline_response.code)
         match_timeline_json = await treq.json_content(match_timeline_response)
-        match_events = timeline_analysis.get_timeline_data(match_timeline_json, event_type, participant_id)
-        combined_timeline.extend(match_events)
+        match_timeline = timeline_analysis.get_timeline_data(match_timeline_json, participant_id)
+        timelines.append(match_timeline)
         num_matches += 1
-    return json.dumps({"matches": num_matches, "timeline": combined_timeline})
+    return json.dumps({"matches": num_matches, "timeline": timeline_analysis.combine_timelines(timelines)})
 
 
 @app.route("/api/<server>/account/<account_id>/combined_timeline")
@@ -151,28 +151,7 @@ async def get_combined_timeline(request, server, account_id):
     match_ids = [str(matchId) for matchId in get_request_param(request, "matchIDs", True)]
     print(match_ids, flush=True)
     event_type = get_request_param(request, "event")
-
-    combined_timeline = []
-    num_matches = 0
-    # First, fetch the match details
-    
-    details_list = await asyncio.gather(*[get_match_details(request, server, match_id) for match_id in match_ids])
-    for i, details_json_str in enumerate(details_list):
-        print("Number " + str(num_matches), flush=True)
-        details_json = json.loads(details_json_str)
-        participant_id = match_details.get_participant_id(details_json, account_id)
-        if participant_id is None:
-            continue
-        url = compose_url("/lol/match/v4/timelines/by-match/" + match_ids[i], server)
-        match_timeline_response = await treq.get(url)
-        if is_error(match_timeline_response):
-            return get_error_response(match_timeline_response.code)
-        match_timeline_json = await treq.json_content(match_timeline_response)
-        match_events = timeline_analysis.get_timeline_data(match_timeline_json, event_type, participant_id)
-        combined_timeline.extend(match_events)
-        num_matches += 1
-    return json.dumps({"matches": num_matches, "timeline": combined_timeline})
-    #return await fetch_combined_timeline(request, server, account_id, match_ids, event_type)
+    return await fetch_combined_timeline(request, server, account_id, match_ids, event_type)
 
 
 @app.route("/api/<server>/account/<account_id>/full_timeline")

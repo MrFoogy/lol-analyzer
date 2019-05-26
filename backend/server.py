@@ -10,7 +10,7 @@ import match_details
 app = Flask(__name__)
 CORS(app)
 
-api_key = "RGAPI-7c1c8152-238d-4671-96da-0c4566b1f4ac"
+api_key = "RGAPI-b4cd7faa-8bb1-4404-b059-3a6857a64b1a"
 region_end_points = {
     "br": "br1.api.riotgames.com",
     "eune": "eun1.api.riotgames.com",
@@ -24,14 +24,6 @@ region_end_points = {
     "tr": "tr1.api.riotgames.com",
     "ru": "ru.api.riotgames.com",
 }
-
-def allow_cors(request):
-    request.setHeader('Access-Control-Allow-Origin', '*')
-    request.setHeader('Access-Control-Allow-Methods', 'GET')
-    request.setHeader('Access-Control-Allow-Headers',
-                   'x-prototype-version,x-requested-with')
-    request.setHeader('Access-Control-Max-Age', 2520)
-    request.setHeader('Content-type', 'application/json')
 
 def get_error_response(status_code):
     message = "Error"
@@ -99,11 +91,11 @@ def get_match_timeline(server, match_id):
     if is_error(response):
         return get_error_response(response.status_code)
     json_data = response.json()
-    return jsonify(timeline_analysis.get_timeline_data(json_data, request.args.get("event"), int(request.args.get("pID"))))
+    return jsonify(timeline_analysis.get_timeline_data(json_data, int(request.args.get("pID"))))
 
 
 def fetch_combined_timeline(server, account_id, match_ids, event_type):
-    combined_timeline = []
+    timelines = []
     num_matches = 0
     for match_id in match_ids:
         print("Number " + str(num_matches), flush=True)
@@ -117,10 +109,10 @@ def fetch_combined_timeline(server, account_id, match_ids, event_type):
         match_timeline_response = requests.get(url)
         if is_error(match_timeline_response):
             return get_error_response(match_timeline_response.status_code)
-        match_events = timeline_analysis.get_timeline_data(match_timeline_response.json(), event_type, participant_id)
-        combined_timeline.extend(match_events)
+        match_timeline = timeline_analysis.get_timeline_data(match_timeline_response.json(), participant_id)
+        timelines.append(match_timeline)
         num_matches += 1
-    return jsonify({"matches": num_matches, "timeline": combined_timeline})
+    return jsonify({"matches": num_matches, "timeline": timeline_analysis.combine_timelines(timelines)})
 
 
 @app.route("/api/<server>/account/<account_id>/combined_timeline")

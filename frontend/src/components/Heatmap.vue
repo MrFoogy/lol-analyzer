@@ -11,8 +11,10 @@ import * as simpleheat from 'simpleheat';
 
 export default {
   name: 'heatmap',
+  props: ["eventType"],
   data: function() {
     return {
+      fullTimeline: null,
       positions: [],
       heat: null,
     }
@@ -22,10 +24,14 @@ export default {
     this.redraw();
   },
   methods: {
-    displayKills(jsonData) {
+    setTimelineData(jsonData) {
+      this.fullTimeline = jsonData;
+      this.updateHeatmap();
+    },
+    updateHeatmap() {
       this.positions = [];
-      for (var i = 0; i < jsonData.length; i++) {
-        var rawPos = jsonData[i]["position"];
+      for (var i = 0; i < this.fullTimeline[this.eventType].length; i++) {
+        var rawPos = this.fullTimeline[this.eventType][i]["position"];
         this.positions.push(this.getHeatmapPoint(rawPos));
       }
       this.redraw();
@@ -52,6 +58,10 @@ export default {
     },
     map_range(value, low1, high1, low2, high2) {
       return low2 + (high2 - low2) * (value - low1) / (high1 - low1);
+    }
+  }, watch: {
+    eventType: function(val) {
+      this.updateHeatmap();
     }
   }
 }
