@@ -1,6 +1,6 @@
 <template>
   <div id="container">
-    <canvas id="chart" width="400" height="400"> </canvas>
+    <canvas id="chart" width="350" height="350"> </canvas>
   </div>
 </template>
 
@@ -88,8 +88,8 @@ export default {
 
 <style scoped>
 #container {
-  width: 400px;
-  height: 400px;
+  width: 350px;
+  height: 350px;
   position: relative;
 }
 canvas {

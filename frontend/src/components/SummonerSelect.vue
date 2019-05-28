@@ -67,13 +67,19 @@ export default {
 }
 </script>
 
-<style>
-select {
-  margin-top: 10px;
+<style scoped>
+.summonerSelect {
+  position: absolute;
+  right: 0;
+  top: 15px;
+  display: flex;
+  justify-content: flex-end;
+  align-content: center;
 }
 .summonerSelect * {
   margin-left: 5px;
   margin-right: 5px;
+  align-self: center;
 }
 </style>
 

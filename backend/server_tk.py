@@ -5,6 +5,7 @@ import champion_data
 import queue_names
 import timeline_analysis
 import match_details
+import match_filter
 import json
 import certifi
 import os
@@ -92,10 +93,10 @@ async def get_matches(request, server, account_id):
     response = await treq.get(url)
     if is_error(response):
         return get_error_response(response.code)
+    queues = get_request_param(request, "queues", True)
+    champions = get_request_param(request, "champions", True)
     json_data = await treq.json_content(response)
-    return json.dumps([{**{k: match_obj[k] for k in ["gameId", "lane", "role", "timestamp"]}, 
-                     "championName": champion_data.get_champion_name(match_obj["champion"]),
-                     "queue": queue_names.get_queue_name(match_obj["queue"])} for match_obj in json_data["matches"]])
+    return json.dumps(match_filter.filter_matches(json_data, queues, champions))
 
 
 @app.route("/api/<server>/summoner/<summoner_id>/champion/mastery")

@@ -1,5 +1,4 @@
 <template>
-  <div>
     <!-- Rounded switch -->
     <!--
     <label class="switch">
@@ -7,16 +6,13 @@
       <span class="slider round"></span>
     </label>
     -->
-    <div id="mainContainer">
-      <div id="querySelect">
-        <div id="matchSelect">
-          <MatchFilter/>
-          <div id="details" v-show="selectedMatchIds.length == 1">
-            <MatchDetails 
-              ref="matchDetails" 
-              :server="server" 
-              :summonerName="summonerName"
-              @participantSelected="participantSelected"/>
+  <div id="mainContainer">
+    <div id="querySelect">
+      <div id="matchSelect">
+        <MatchFilter class="matchFilter shadowBox" @filterChange="onMatchFilterChange" @setMap="onSelectMap"/>
+        <div class="shadowBox" id="matchListFrame">
+          <div class="dataOutdatedBlock" v-show="isMatchListOutdated">
+            <LoadButton ref="timelineLoad" :loading="isLoadingMatches" :canLoad="canFetchMatches" @click="fetchMatches"/>
           </div>
           <div id="matchList">
             <li
@@ -36,19 +32,40 @@
           </div>
         </div>
       </div>
+      <div class="shadowBox" id="selectedMatchView">
+        <div id="details" v-show="selectedMatchIds.length == 1">
+          <MatchDetails 
+            ref="matchDetails" 
+            :server="server" 
+            :summonerName="summonerName"
+            @participantSelected="participantSelected"/>
+        </div>
+        <div class="noSelectedMatchText" v-show="selectedMatchIds.length > 1">
+          <h3> Combining matches </h3>
+        </div>
+        <div class="noSelectedMatchText" v-show="selectedMatchIds.length == 0">
+          <h3> No matches selected </h3>
+        </div>
+      </div>
+    </div>
+    <div id="dataDisplayFrame">
+      <div class="dataOutdatedBlock" v-show="isDataViewOutdated">
+        <LoadButton ref="timelineLoad" :loading="isLoadingTimeline" :canLoad="canFetchTimeline" @click="fetchTimelineData"/>
+      </div>
       <div id="dataDisplayContainer">
-        <div id="dataDisplay">
+        <div class="dataDisplay shadowBox">
+          <h2> Match Stats </h2>
           <select ref="statPick" v-model="selectedStatType">
             <option v-for="statType in statTypes" :value="statType" :key="statType.displayName"> {{ statType.displayName }} </option>
           </select>
           <StatGraph ref="statGraph" :statType="selectedStatType"/>
+        </div>
+        <div class="dataDisplay shadowBox">
+          <h2> Match Events </h2>
           <select ref="eventPick" v-model="selectedEventType">
             <option v-for="eventType in eventTypes" :value="eventType.paramName" :key="eventType.displayName"> {{ eventType.displayName }} </option>
           </select>
-          <Heatmap ref="heatmap" :eventType="selectedEventType"/>
-          <!--
-          <button @click="refreshHeatmap"> Update </button>
-          -->
+          <Heatmap ref="heatmap" :eventType="selectedEventType" :mapId="selectedMapId"/>
         </div>
       </div>
     </div>
@@ -62,19 +79,29 @@ import Heatmap from '../components/Heatmap';
 import MatchFilter from '../components/MatchFilter'
 import MatchDetails from '../components/MatchDetails';
 import MatchCombiner from '../components/MatchCombiner';
+import LoadButton from '../components/LoadButton';
 import axios from 'axios';
 import * as dataFetch from '../assets/js/data_fetch.js';
+import jQuery from 'jquery';
+var _ = require("underscore");
 
 export default {
   name: 'summonerMatches',
   props: ["server", "summonerName"],
   data: function() {
     return {
+      matchFilter: null,
+      lastUsedFilter: null,
       combine: false,
       matches: [],
       matchKills: [],
       selectedMatchIds: [],
+      lastUsedMatchIds: [],
+      selectedMap: 'SR',
       selectedParticipant: null,
+      lastUsedParticipant: null,
+      isLoadingTimeline: false,
+      isLoadingMatches: false,
       selectedEventType: "kill",
       selectedStatType: {"displayName": "Gold Earned", "paramName": "gold"},
       statTypes: [
@@ -87,29 +114,35 @@ export default {
         {"displayName": "Wards Killed", "paramName": "wardkill"},
       ],
       eventTypes: [
-        {
-          "displayName": "Kills",
-          "paramName": "kill",
-        },
-        {
-          "displayName": "Deaths",
-          "paramName": "death",
-        },
-        {
-          "displayName": "Assists",
-          "paramName": "assist",
-        },
-        /*
-        {
-          "displayName": "Wards Placed",
-          "paramName": "wardplace",
-        },
-        {
-          "displayName": "Wards Killed",
-          "paramName": "wardkill",
-        },
-        */
+        {"displayName": "Kills", "paramName": "kill"},
+        {"displayName": "Deaths", "paramName": "death"},
+        {"displayName": "Assists", "paramName": "assist"},
       ],
+    }
+  }, computed: {
+    selectedMapId: function() {
+      if (this.selectedMap == 'TT') {
+        return 10;
+      } 
+      if (this.selectedMap == 'SR') {
+        return 11;
+      } 
+      if (this.selectedMap == 'HA') {
+        return 12;
+      } 
+      return 0;
+    },
+    isMatchListOutdated: function() {
+      return this.isLoadingMatches || this.lastUsedFilter == null || !_.isEqual(this.lastUsedFilter, this.matchFilter);
+    },
+    isDataViewOutdated: function() {
+      return this.isLoadingTimeline || this.selectedMatchIds.length == 0 || !_.isEqual(this.selectedMatchIds, this.lastUsedMatchIds) || (this.lastUsedMatchIds.length == 1 && !_.isEqual(this.selectedParticipant, this.lastUsedParticipant));
+    },
+    canFetchTimeline: function() {
+      return this.selectedMatchIds.length > 0 && !this.isLoadingTimeline;
+    },
+    canFetchMatches: function() {
+      return this.matchFilter != null && !this.isLoadingMatches;
     }
   },
   components: {
@@ -119,6 +152,7 @@ export default {
     'MatchDetails': MatchDetails,
     'MatchCombiner': MatchCombiner,
     'MatchFilter': MatchFilter,
+    'LoadButton': LoadButton,
   },
   methods: {
     matchClicked: function(event, matchId) {
@@ -130,22 +164,46 @@ export default {
       }
       if (this.selectedMatchIds.length == 1) {
         this.$refs.matchDetails.fetchMatchDetails(this.selectedMatchIds[0]);
-      } else if (this.selectedMatchIds.length > 0) {
-        this.refreshHeatmap();
-      }
+      } 
+      console.log(this.selectedMatchIds);
+      console.log(this.lastUsedMatchIds);
+      console.log( !_.isEqual(this.selectedMatchIds, this.lastUsedMatchIds))
+    },
+    onSelectMap(mapName) {
+      this.selectedMap = mapName;
+    },
+    onMatchFilterChange(matchFilter) {
+      this.matchFilter = matchFilter;
     },
     onTimelineQuery() {
       this.fetchFullTimeline();
     },
-    fetchData() {
-      axios.get(dataFetch.matchListUrl(this.server, this.$store.state.accountId)).then(response => {
+    fetchMatches() {
+      // Deep copy
+      this.lastUsedFilter = jQuery.extend(true, {}, this.matchFilter);
+      this.selectedMatchIds = []
+      this.isLoadingMatches = true;
+      axios.get(dataFetch.matchListUrl(this.server, this.$store.state.accountId), {
+        params: {
+          queues: "[" + this.matchFilter.queues.toString() + "]",
+          champions: this.matchFilter.useChampFilter == "true" ? "[" + this.matchFilter.champions.toString() + "]" : "[]",
+        }
+      }).then(response => {
         this.matches = response.data;
+        this.isLoadingMatches = false;
+      }).catch((error) => {
+        this.isLoadingMatches = false;
       });
     },
     fetchTimeline() {
+      // Clone
+      this.lastUsedMatchIds = [...this.selectedMatchIds];
+      this.lastUsedParticipant = this.selectedParticipant;
       if (this.selectedMatchIds.length == 1) {
+        this.isLoadingTimeline = true;
         this.fetchMatchTimeline();
       } else if (this.selectedMatchIds.length > 0) {
+        this.isLoadingTimeline = true;
         this.fetchSelectedMatchesTimeline();
       } 
     },
@@ -160,6 +218,9 @@ export default {
           }).then(response => {
         this.$refs.heatmap.setTimelineData(response.data["events"]);
         this.$refs.statGraph.setTimelineData(response.data["stats"]);
+        this.isLoadingTimeline = false;
+      }).catch((error) => {
+        this.isLoadingTimeline = false;
       });
     },
     fetchSelectedMatchesTimeline() {
@@ -173,6 +234,9 @@ export default {
         console.log(response.data);
         this.$refs.heatmap.setTimelineData(response.data["timeline"]["events"]);
         this.$refs.statGraph.setTimelineData(response.data["timeline"]["stats"]);
+        this.isLoadingTimeline = false;
+      }).catch((error) => {
+        this.isLoadingTimeline = false;
       });
     },
     fetchFullTimeline() {
@@ -189,15 +253,11 @@ export default {
     },
     participantSelected: function(participantId) {
       this.selectedParticipant = participantId;
-      this.refreshHeatmap();
     },
-    refreshHeatmap() {
+    fetchTimelineData() {
       this.$refs.heatmap.clear();
       this.fetchTimeline();
     }
-  },
-  mounted() {
-    this.fetchData();
   }
 }
 </script>
@@ -206,42 +266,103 @@ export default {
 #mainContainer {
   display: flex;
   flex-direction: row;
-  justify-content: center;
+  height: 100%;
 }
 #matchSelect {
   display: flex;
-  flex-direction: row;
-  justify-content: center;
+  flex-direction: column;
+  justify-self: start;
+  align-items: center;
+  height: 100%;
 }
 #querySelect {
-  width: 60%;
+  height: 100%;
   display: flex;
   flex-direction: row;
-  justify-content: flex-end;
+  align-items: center;
+  justify-content: flex-start;
+  flex: 0 0 0;
+}
+.matchFilter {
+  width: 400px;
+  height: 220px;
+  padding-top:10px;
+  padding-bottom:10px;
+  border-radius: 5px;
+}
+.dataOutdatedBlock {
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0;
+  left: 0;
+}
+#matchList {
+  flex: 1 1 0px;
+  padding: 8px 16px 8px 8px;
+}
+.dataOutdatedBlock {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 10;
+  background-color: #83ADA3d0;
+}
+#dataDisplayFrame {
+  margin-left: 20px;
+  position: relative;
+  flex: 1 1 0;
 }
 #dataDisplayContainer {
-  width: 40%;
-  margin-left: 20px;
+  flex: 1 1 0px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-direction: row;
+  height: 100%;
+  justify-content: space-around;
+  align-items: center;
 }
-#dataDisplay {
+.dataDisplay {
   display: flex;
   flex-direction: column;
   align-items: center;
+  z-index: 1;
+  margin-left: 4px;
+  margin-right: 4px;
+  padding: 8px 18px 8px 18px;
+  border-radius: 5px;
 }
-#dataDisplay * {
+.dataDisplay * {
   margin-bottom: 10px;
+}
+#matchListFrame {
+  margin-top:10px;
+  width: 400px;
+  flex: 1 1 0px;
+  position: relative;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
 }
 #matchList {
   display: flex;
   flex-direction: column;
-  width: 400px;
-  margin-left: 20px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+.noSelectedMatchText {
+  padding-left: 8px;
+}
+#selectedMatchView {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  border-radius: 5px;
+  margin-left: 10px;
+  width: 250px;
+  padding: 16px 16px 16px 8px;
 }
 #details {
-  width: 400px;
+  width: 100%;
   display: flex;
   flex-direction: column;
 }

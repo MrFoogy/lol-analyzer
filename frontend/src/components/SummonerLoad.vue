@@ -1,6 +1,6 @@
 <template>
-  <div >
-    <h1> Loading summoner... {{ summonerName }}</h1>
+  <div id="summonerLoad">
+    <h2> Loading summoner {{ summonerName }} ...</h2>
   </div>
 </template>
 
@@ -28,6 +28,9 @@ export default {
 }
 </script>
 
-<style>
+<style scoped>
+h2 {
+  margin-block-start: 12px;
+}
 </style>
 

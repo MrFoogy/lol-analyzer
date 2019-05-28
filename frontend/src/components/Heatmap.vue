@@ -1,8 +1,8 @@
 <template>
   <div id="container">
-    <img src="http://ddragon.leagueoflegends.com/cdn/6.8.1/img/map/map11.png"/>
+    <img v-if="mapId != 0" :src="minimapImgUrl"/>
     <!-- Height and Width set here determine reference for data points! -->
-    <canvas id="canvas" width="400" height="400"> </canvas>
+    <canvas id="canvas" width="350" height="350"> </canvas>
   </div>
 </template>
 
@@ -11,13 +11,37 @@ import * as simpleheat from 'simpleheat';
 
 export default {
   name: 'heatmap',
-  props: ["eventType"],
+  props: ["eventType", "mapId"],
   data: function() {
     return {
       fullTimeline: null,
       positions: [],
       heat: null,
+      miny: {
+        11: -120,
+        10: 0,
+        12: -19,
+      },
+      minx: {
+        11: -120,
+        10: 0,
+        12: -28,
+      },
+      maxy: {
+        11: 14980,
+        10: 15398,
+        12: 12858,
+      },
+      maxx: {
+        11: 14870,
+        10: 15398,
+        12: 12849,
+      },
     }
+  }, computed: {
+    minimapImgUrl: function() {
+      return "http://ddragon.leagueoflegends.com/cdn/9.8.1/img/map/map" + this.mapId.toString() + ".png"
+    },
   },
   mounted() {
     this.heat = simpleheat('canvas');
@@ -45,15 +69,11 @@ export default {
       this.heat.data(this.positions).draw();
     },
     getHeatmapPoint(rawPos) {
-      var minx = -120;
-      var miny = -120;
-      var maxx = 14870;
-      var maxy = 14980;
-      var width = 400;
-      var height = 400;
+      var width = 350;
+      var height = 350;
       // TODO: y-axis is reversed???
-      var transX = this.map_range(rawPos["x"], minx, maxx, 0, width);
-      var transY = this.map_range(rawPos["y"], miny, maxy, height, 0);
+      var transX = this.map_range(rawPos["x"], this.minx[this.mapId], this.maxx[this.mapId], 0, width);
+      var transY = this.map_range(rawPos["y"], this.miny[this.mapId], this.maxy[this.mapId], height, 0);
       return [transX, transY, 0.5]
     },
     map_range(value, low1, high1, low2, high2) {
@@ -69,8 +89,8 @@ export default {
 
 <style scoped>
 #container {
-  width: 400px;
-  height: 400px;
+  width: 350px;
+  height: 350px;
   position: relative;
 }
 img {
@@ -80,6 +100,7 @@ img {
   z-index: -10;
   top: 0;
   left: 0;
+  border-radius: 5px;
 }
 canvas {
   display: inline;

@@ -24,6 +24,8 @@ export default {
   position: relative;
   display: inline-block;
   margin: 5px 5px 5px 5px;
+  box-shadow: 3px 4px 3px -1px rgba(0,0,0,.2);
+  border-radius: 5px;
 }
 #infoBox {
   width: 100%;

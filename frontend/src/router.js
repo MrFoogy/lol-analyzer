@@ -24,6 +24,10 @@ export default new Router({
       props: true,
       children: [
         {
+          path: '',
+          redirect: 'overview',
+        },
+        {
           path: 'overview',
           name: 'summonerOverview',
           props: true,

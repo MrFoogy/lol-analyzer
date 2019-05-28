@@ -7,10 +7,11 @@ import champion_data
 import queue_names
 import timeline_analysis
 import match_details
+import match_filter
 app = Flask(__name__)
 CORS(app)
 
-api_key = "RGAPI-b4cd7faa-8bb1-4404-b059-3a6857a64b1a"
+api_key = "RGAPI-797613cb-41d7-460a-92fd-5487d4457b42"
 region_end_points = {
     "br": "br1.api.riotgames.com",
     "eune": "eun1.api.riotgames.com",
@@ -63,14 +64,14 @@ def get_summoner_account_id(server, summoner_name):
 
 @app.route("/api/<server>/account/<account_id>/matchlist")
 def get_matches(server, account_id):
+    queues = json.loads(request.args.get("queues"))
+    champions = json.loads(request.args.get("champions"))
     url = compose_url("/lol/match/v4/matchlists/by-account/" + account_id, server)
     response = requests.get(url)
     if is_error(response):
         return get_error_response(response.status_code)
     json_data = response.json()
-    return jsonify([{**{k: match_obj[k] for k in ["gameId", "lane", "role", "timestamp"]}, 
-                     "championName": champion_data.get_champion_name(match_obj["champion"]),
-                     "queue": queue_names.get_queue_name(match_obj["queue"])} for match_obj in json_data["matches"]])
+    return jsonify(match_filter.filter_matches(json_data, queues, champions))
 
 
 @app.route("/api/<server>/summoner/<summoner_id>/champion/mastery")

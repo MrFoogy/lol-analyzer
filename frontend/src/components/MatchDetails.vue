@@ -114,7 +114,7 @@ export default {
 }
 #teams {
     display: flex;
-    flex-direction: row;
+    flex-direction: column;
 }
 .teamContent {
   flex: 50%;
