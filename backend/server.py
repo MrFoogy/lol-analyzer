@@ -11,7 +11,7 @@ import match_filter
 app = Flask(__name__)
 CORS(app)
 
-api_key = "RGAPI-797613cb-41d7-460a-92fd-5487d4457b42"
+api_key = "RGAPI-53443e92-9d40-4ca7-976d-84a0624e6a32"
 region_end_points = {
     "br": "br1.api.riotgames.com",
     "eune": "eun1.api.riotgames.com",

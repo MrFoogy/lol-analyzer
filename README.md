@@ -1,3 +1,7 @@
+## Screencast Link:
+
+https://youtu.be/U8s0KsVAYqs
+
 # League of Legends Play Pattern Analyzer
 This project is a web application that uses the Riot Games API ([https://developer.riotgames.com/](https://developer.riotgames.com/)) to give an analysis of match data from the game League of Legends. The focus of the application is to give individual players data that summarizes their individual play patterns, in order to highlight areas where they can improve.
 

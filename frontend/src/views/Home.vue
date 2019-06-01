@@ -1,6 +1,5 @@
 <template>
   <div >
-    <h1> League of Legends Analyzer </h1>
   </div>
 </template>
 
